@@ -124,3 +124,115 @@ portugal.mbtiles (External)
 The MBTiles archive containing all pre-rendered map tiles for offline use.
 
 With this structure, every responsibility—from app configuration through map rendering, drawing overlays, data storage, and search—is clearly separated into its own file.# TNAIUTO
+
+
+              MAPAPPMAPAPPMAPAPPMAPAPPMAP
+
+
+Consolidated Project Map
+Below is a single reference listing every file in your offline‐map app, its location within the project, its primary role, and how it interacts with other components. Keep this handy to ensure nothing slips through the cracks.
+
+1. Gradle & Project Configuration
+settings.gradle • Location: /settings.gradle • Role: Enumerates project modules (:app).
+
+build.gradle (Project-level) • Location: /build.gradle • Role: Declares plugin repositories and Gradle wrapper versions.
+
+build.gradle (Module: app) • Location: /app/build.gradle • Role:
+
+Specifies Android SDK (minSdk, targetSdk, compileSdk)
+
+Enables Kotlin and ViewBinding
+
+Adds dependencies (OSMDroid, AndroidX, Material, lifecycle)
+
+proguard-rules.pro • Location: /app/proguard-rules.pro • Role: Contains R8/ProGuard rules for release builds.
+
+2. Android Manifest & Permissions
+AndroidManifest.xml • Location: /app/src/main/AndroidManifest.xml • Role:
+
+Requests READ_EXTERNAL_STORAGE & WRITE_EXTERNAL_STORAGE
+
+Defines OSMDroid cache metadata (osmdroid.basePath, osmdroid.cachePath)
+
+Declares MainActivity as launcher
+
+3. Layout Resources
+activity_main.xml • Location: /app/src/main/res/layout/activity_main.xml • Role:
+
+Hosts a FrameLayout (@+id/container) for swapping in fragments
+
+Contains UI controls (e.g., “Draw” button)
+
+fragment_map.xml • Location: /app/src/main/res/layout/fragment_map.xml • Role: Full-screen org.osmdroid.views.MapView used by MapFragment.
+
+4. Application Code
+4.1 Entry Point & Navigation
+MainActivity.kt • Location: /app/src/main/java/com/yourapp/offlinemap/MainActivity.kt • Role:
+
+Launches the app and inflates activity_main.xml
+
+Hosts MapFragment via FragmentManager or Navigation Component
+
+Handles UI events (e.g., toggling draw mode)
+
+4.2 Map Display
+MapFragment.kt • Location: /app/src/main/java/com/yourapp/offlinemap/ui/MapFragment.kt • Role:
+
+Inflates fragment_map.xml using ViewBinding
+
+Loads OSMDroid configuration (Configuration.getInstance().load(...))
+
+Centers the map on Lisbon and sets zoom/multi-touch
+
+Will attach TilesOverlay backed by MBTileArchive
+
+4.3 Drawing Overlays
+DrawOverlay.kt • Location: /app/src/main/java/com/yourapp/offlinemap/ui/DrawOverlay.kt • Role:
+
+Extends Overlay to capture touch events
+
+Allows users to draw polygons or lines on the map
+
+Emits drawable geometry for downstream querying
+
+5. Data Layer (Room Database)
+LocationEntity.kt • Location: /app/src/main/java/com/yourapp/offlinemap/data/LocationEntity.kt • Role: Room @Entity representing a point (latitude, longitude, optional metadata).
+
+LocationDao.kt • Location: /app/src/main/java/com/yourapp/offlinemap/data/LocationDao.kt • Role: @Dao interface; methods to insert points and query by bounding box or polygon.
+
+LocationDatabase.kt • Location: /app/src/main/java/com/yourapp/offlinemap/data/LocationDatabase.kt • Role: Abstract RoomDatabase; provides a singleton instance and access to LocationDao.
+
+6. Search & Utilities
+SearchUtils.kt • Location: /app/src/main/java/com/yourapp/offlinemap/utils/SearchUtils.kt • Role:
+
+Contains algorithms to test if a LocationEntity lies within a user-drawn shape
+
+Returns filtered lists of matching points
+
+7. Documentation & External Data
+README.md • Location: /app/README.md (or project root) • Role:
+
+Instructions to download/generate portugal.mbtiles
+
+Specifies device path: /storage/emulated/0/OfflineMaps/portugal.mbtiles
+
+Steps to grant runtime storage permissions and run the map
+
+portugal.mbtiles (external, not checked into GitHub) • Device Location: /storage/emulated/0/OfflineMaps/portugal.mbtiles • Role: Contains pre-rendered map tiles for offline display via OSMDroid.
+
+8. Interaction Flow
+App Launch MainActivity inflates activity_main.xml.
+
+Map Initialization MainActivity commits MapFragment into the container.
+
+OSMDroid Setup MapFragment loads preferences and config, then centers map.
+
+Offline Tiles MapFragment will attach MBTileArchive → MapTileProviderBasic → TilesOverlay.
+
+Draw Mode User taps “Draw” → MainActivity enables DrawOverlay on the MapView.
+
+Data Query Once drawing completes, the overlay passes geometry to SearchUtils.
+
+Database Lookup SearchUtils queries LocationDao for points inside the drawn area.
+
+Results Display Filtered LocationEntity objects can be rendered as markers or listed in UI.
